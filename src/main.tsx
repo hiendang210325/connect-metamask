@@ -1,12 +1,21 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { ThirdwebProvider } from "thirdweb/react";
+import { supportedChains, defaultChain } from "./config/chains";
+import { client } from "./client";
 import "./index.css";
 
-createRoot(document.getElementById("root")!).render(
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Failed to find the root element");
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <ThirdwebProvider>
+    <ThirdwebProvider
+      client={client}
+      supportedChains={supportedChains}
+      activeChain={defaultChain}
+    >
       <App />
     </ThirdwebProvider>
   </React.StrictMode>

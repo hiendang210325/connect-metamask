@@ -1,98 +1,90 @@
-import { ConnectButton } from "thirdweb/react";
-import thirdwebIcon from "./thirdweb.svg";
+import {
+  ConnectButton, // Component nút kết nối ví
+  useActiveAccount, // Hook lấy thông tin tài khoản đang kết nối
+  useWalletBalance, // Hook lấy số dư ví
+  useDisconnect, // Hook để ngắt kết nối ví
+} from "thirdweb/react";
 import { client } from "./client";
+import { defaultChain } from "./config/chains";
+import { useEffect } from "react";
 
 export function App() {
-	return (
-		<main className="p-4 pb-10 min-h-[100vh] flex items-center justify-center container max-w-screen-lg mx-auto">
-			<div className="py-20">
-				<Header />
+  const account = useActiveAccount(); // Lấy thông tin tài khoản hiện tại
+  const disconnect = useDisconnect(); // Function để ngắt kết nối
 
-				<div className="flex justify-center mb-20">
-					<ConnectButton
-						client={client}
-						appMetadata={{
-							name: "Example app",
-							url: "https://example.com",
-						}}
-					/>
-				</div>
+  // Lấy số dư của ví
+  const {
+    data: balance,
+    isLoading,
+    error,
+  } = useWalletBalance({
+    client, // Client đã cấu hình
+    chain: defaultChain, // Mạng blockchain đang sử dụng
+    address: account?.address, // Địa chỉ ví
+    enabled: !!account?.address, // Chỉ query khi có địa chỉ ví
+  });
 
-				<ThirdwebResources />
-			</div>
-		</main>
-	);
-}
+  useEffect(() => {
+    const handleAccountsChanged = async () => {
+      try {
+        await disconnect(); // Ngắt kết nối khi đổi tài khoản
+      } catch (error) {
+        console.error("Error handling account change:", error);
+      }
+    };
 
-function Header() {
-	return (
-		<header className="flex flex-col items-center mb-20 md:mb-20">
-			<img
-				src={thirdwebIcon}
-				alt=""
-				className="size-[150px] md:size-[150px]"
-				style={{
-					filter: "drop-shadow(0px 0px 24px #a726a9a8)",
-				}}
-			/>
+    // Lắng nghe sự kiện từ MetaMask
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", handleAccountsChanged); // Khi đổi tài khoản
+      window.ethereum.on("chainChanged", handleAccountsChanged); // Khi đổi mạng
+    }
 
-			<h1 className="text-2xl md:text-6xl font-bold tracking-tighter mb-6 text-zinc-100">
-				thirdweb SDK
-				<span className="text-zinc-300 inline-block mx-1"> + </span>
-				<span className="inline-block -skew-x-6 text-violet-500"> vite </span>
-			</h1>
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener(
+          "accountsChanged",
+          handleAccountsChanged
+        );
+        window.ethereum.removeListener("chainChanged", handleAccountsChanged);
+      }
+    };
+  }, [disconnect]);
 
-			<p className="text-zinc-300 text-base">
-				Read the{" "}
-				<code className="bg-zinc-800 text-zinc-300 px-2 rounded py-1 text-sm mx-1">
-					README.md
-				</code>{" "}
-				file to get started.
-			</p>
-		</header>
-	);
-}
+  return (
+    <div className="min-h-screen bg-black p-4">
+      <div className="max-w-md mx-auto bg-gray-800 rounded-lg p-6">
+        <h1 className="text-white text-2xl font-bold mb-6 text-center">
+          Web3 Connect
+        </h1>
 
-function ThirdwebResources() {
-	return (
-		<div className="grid gap-4 lg:grid-cols-3 justify-center">
-			<ArticleCard
-				title="thirdweb SDK Docs"
-				href="https://portal.thirdweb.com/typescript/v5"
-				description="thirdweb TypeScript SDK documentation"
-			/>
+        <div className="bg-gray-700 p-4 rounded-lg text-center mb-4">
+          <ConnectButton client={client} />
+        </div>
 
-			<ArticleCard
-				title="Components and Hooks"
-				href="https://portal.thirdweb.com/typescript/v5/react"
-				description="Learn about the thirdweb React components and hooks in thirdweb SDK"
-			/>
+        {account && (
+          <div className="text-white mt-6 space-y-2">
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <p className="text-gray-400">Wallet Address:</p>
+              <p className="font-mono break-all">{account.address}</p>
+            </div>
 
-			<ArticleCard
-				title="thirdweb Dashboard"
-				href="https://thirdweb.com/dashboard"
-				description="Deploy, configure, and manage your smart contracts from the dashboard."
-			/>
-		</div>
-	);
-}
-
-function ArticleCard(props: {
-	title: string;
-	href: string;
-	description: string;
-}) {
-	return (
-		<a
-			href={`${props.href}?utm_source=vite-template`}
-			target="_blank"
-			className="flex flex-col border border-zinc-800 p-4 rounded-lg hover:bg-zinc-900 transition-colors hover:border-zinc-700"
-			rel="noreferrer"
-		>
-			<article>
-				<h2 className="text-lg font-semibold mb-2">{props.title}</h2>
-				<p className="text-sm text-zinc-400">{props.description}</p>
-			</article>
-		</a>
-	);
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <p className="text-gray-400">Balance:</p>
+              {error ? (
+                <p className="text-red-500">
+                  Error loading balance: {error.message}
+                </p>
+              ) : isLoading ? (
+                <p>Loading balance...</p>
+              ) : (
+                <p className="font-bold">
+                  {balance?.displayValue || "0"} {balance?.symbol}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
