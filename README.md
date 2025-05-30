@@ -62,3 +62,9 @@ yarn preview
 ## Need help?
 
 For help or feedback, please [visit our support site](https://thirdweb.com/support)
+
+
+.env 
+VITE_TEMPLATE_CLIENT_ID=965b9d7e831318c1e7634b638afdb043
+// Secret Key
+// 4lrlCCZiDkVU90tkER1Eu-7GR_eqqew77D5uX7NDB_1W8kxsW4wxfqRfzQvx_j99gTnhbL2kAPFuhOfcb8JhdA
